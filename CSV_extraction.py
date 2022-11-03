@@ -1,15 +1,14 @@
 import re
 import pandas as pd
 import csv
-from collections import defaultdict
 
 df = pd.read_csv('conso-annuelles_v1.csv', sep=';', encoding='latin-1')
 
-print(df.columns)
-print("Nombres de lignes avant cleaning :" + str(len(df.index)))
+# print(df.columns)
+# print("Nombres de lignes avant cleaning :" + str(len(df.index)))
 
 df_no_void = df.dropna()
-print("Nombres de lignes après cleaning :" + str(len(df_no_void.index)))
+# print("Nombres de lignes après cleaning :" + str(len(df_no_void.index)))
 
 data_added = {
     df.columns[0]: [],
@@ -17,17 +16,16 @@ data_added = {
     df.columns[4]: []
 }
 
-number_of_elements = {}
-
-print(df.loc[2][2])
-
-
 index = df_no_void.index
 
 for i in range(1, len(index)):
     # VERIFICATION FORMAT DONNEES
+    # Si des cellules dans les colonnes 2 et 3 (Consommation) sont vides, on ne les utilise pas
     if (str(df_no_void.loc[index[i]][2]) not in (None, "") and
             str(df_no_void.loc[index[i]][3]) not in (None, "")):
+        # Autrement, si ces cellules ne contiennent pas uniquement des caractères numériques et une virgule,
+        # on le change en un 0 pour ne pas fausser les calculs, sinon on les cast en float en remplacant la virgule
+        # par un point
         if re.search("([0-9+,])\w+", str(df_no_void.loc[index[i]][2])) is None:
             first_el = 0
         else:
@@ -44,6 +42,7 @@ for i in range(1, len(index)):
                 second_el = df_no_void.loc[index[i]][3]
 
         # SET VALEURS
+        # On ajoute les 2 consommations ensemble et on le rentre dans la case correspondante
         data_added[df_no_void.columns[0]].append(df_no_void.loc[index[i]][0])
         conso = first_el + second_el
         data_added["Consommation annuelle"].append(conso)
@@ -51,41 +50,24 @@ for i in range(1, len(index)):
 
 df_added = pd.DataFrame(data_added)
 
-print("Nombres de lignes total :" + str(len(df_added.index)))
-
-index_added = df_added.index
-
-# df_ordered = df_added.sort_values(by=["Type", "Consommation annuelle"], axis=0, ascending=[True, False])
-
-# df_ordered.to_csv('conso-clean.csv', sep=';', encoding='latin-1')
-
-
 df_added.to_csv('intermediaire.csv', sep=';', encoding='latin-1')
 
+# On utilise un fichier intermédiaire CSV pour faciliter le tri avec des listes
+# plutôt qu'avec des DataFrames.
 with open("intermediaire.csv",'r') as inter_input:
-    #files = [open('input1','r')]
-    counts = defaultdict(int)
-
-    my_list = []
+    inter_list = []
     r = csv.reader(inter_input, delimiter=";")
 
     with open("conso-clean.csv","w",newline="") as conso_clean:
         w = csv.writer(conso_clean,delimiter=";")
         for line in r:
-            my_list.append(line)
-        list_ordered = []
-        list_ordered.append(my_list[0])
-        for line in sorted(my_list[1:len(my_list)],key=lambda row: (row[3],float(row[2]))):
-            list_ordered.append(line)
-        # list_ordered = [my_list[0],]
-        # print(list_ordered)
+            inter_list.append(line)
 
-        for line in list_ordered:
+        # On ajoute la première ligne avec les noms des colonnes
+        w.writerow(inter_list[0])
+        for line in sorted(inter_list[1:len(inter_list)], key=lambda row: (row[3], float(row[2]))):
+            # Puis on ajoute le reste, déjà trié
             w.writerow(line)
-    # for line in r:
-    #     for num in line:
-    #         counts[int(num)] += 1
 
-    # with open('conso-clean.csv', mode='w') as employee_file:
-    # for key,val in sorted(counts.items()):
-    #     print (key, val)
+
+        print("Nombres de lignes total :" + str(len(inter_list)))

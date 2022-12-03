@@ -44,7 +44,7 @@ for i in range(1, len(index)):
         # SET VALEURS
         # On ajoute les 2 consommations ensemble et on le rentre dans la case correspondante
         data_added[df_no_void.columns[0]].append(df_no_void.loc[index[i]][0])
-        conso = first_el + second_el
+        conso = round(first_el + second_el, 1)
         data_added["Consommation annuelle"].append(conso)
         data_added[df_no_void.columns[4]].append(df_no_void.loc[index[i]][4])
 
@@ -53,21 +53,22 @@ df_added = pd.DataFrame(data_added)
 df_added.to_csv('intermediaire.csv', sep=';', encoding='latin-1')
 
 # On utilise un fichier intermédiaire CSV pour faciliter le tri avec des listes
-# plutôt qu'avec des DataFrames.
-with open("intermediaire.csv",'r') as inter_input:
+# plutôt qu'avec des DataFrames (selon les consignes).
+with open("intermediaire.csv", 'r', encoding="latin-1") as inter_input:
     inter_list = []
     r = csv.reader(inter_input, delimiter=";")
 
-    with open("conso-clean.csv","w",newline="") as conso_clean:
-        w = csv.writer(conso_clean,delimiter=";")
+    with open("conso-clean.csv", "w", newline="", encoding="latin-1") as conso_clean:
+        w = csv.writer(conso_clean, delimiter=";")
         for line in r:
             inter_list.append(line)
 
         # On ajoute la première ligne avec les noms des colonnes
-        w.writerow(inter_list[0])
-        for line in sorted(inter_list[1:len(inter_list)], key=lambda row: (row[3], float(row[2]))):
+        # En enlevant la colonne d'identifiants ajoutée par pandas avec [1:]
+        w.writerow(inter_list[0][1:])
+        for line in sorted(inter_list[1:len(inter_list)], key=lambda row: (row[3], -float(row[2]))):
             # Puis on ajoute le reste, déjà trié
-            w.writerow(line)
-
+            # En enlevant la colonne d'identifiants ajoutée par pandas avec [1:]
+            w.writerow(line[1:])
 
         print("Nombres de lignes total :" + str(len(inter_list)))
